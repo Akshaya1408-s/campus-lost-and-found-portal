@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default Deny Catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Health / connection test
+    match /test/connection {
+      allow read: if true;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'lrsakshaya@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    // USERS COLLECTION
+    match /users/{userId} {
+      // PII Protection: Only self or Admin can read user profiles
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Users can only create their own profile; only designated admin email can assign admin role
+      allow create: if isOwner(userId) &&
+        request.resource.data.email is string &&
+        (request.resource.data.role == 'student' ||
+         (request.resource.data.role == 'admin' && request.auth.token.email == 'lrsakshaya@gmail.com'));
+
+      // Users cannot change their own role or escalate privileges
+      allow update: if (
+        isOwner(userId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'studentId', 'department', 'phone', 'updatedAt'])
+      ) || isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
+    // ITEMS COLLECTION
+    match /items/{itemId} {
+      // Campus community can read catalog items
+      allow read: if true;
+
+      // Authenticated users can create items with their own verified reporter ID
+      allow create: if isSignedIn() &&
+        request.resource.data.reporterId == request.auth.uid &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() >= 3 &&
+        request.resource.data.title.size() <= 200 &&
+        request.resource.data.category is string &&
+        request.resource.data.type in ['lost', 'found'] &&
+        request.resource.data.status in ['open', 'claim_pending', 'claimed', 'closed'] &&
+        request.resource.data.location is string;
+
+      // Reporter or Admin can update item details; or allow status transition to claim_pending when claim filed
+      allow update: if (
+        isSignedIn() && resource.data.reporterId == request.auth.uid
+      ) || isAdmin() || (
+        isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+        request.resource.data.status == 'claim_pending' &&
+        resource.data.status == 'open'
+      );
+
+      // Reporter or Admin can delete listing
+      allow delete: if (
+        isSignedIn() && resource.data.reporterId == request.auth.uid
+      ) || isAdmin();
+    }
+
+    // CLAIMS COLLECTION
+    match /claims/{claimId} {
+      // Claimant or Admin can read claims
+      allow read: if isSignedIn() && (
+        resource.data.claimantId == request.auth.uid || isAdmin()
+      );
+
+      // Authenticated users can file an ownership claim
+      allow create: if isSignedIn() &&
+        request.resource.data.claimantId == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.proofDescription is string &&
+        request.resource.data.proofDescription.size() >= 10 &&
+        request.resource.data.proofDescription.size() <= 2000;
+
+      // Only Admin can update claim decision (approve, reject, collect, add notes)
+      allow update: if isAdmin();
+
+      // Only Admin can delete claims
+      allow delete: if isAdmin();
+    }
+  }
+}

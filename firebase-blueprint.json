@@ -1,0 +1,128 @@
+{
+  "entities": {
+    "LostFoundItem": {
+      "title": "LostFoundItem",
+      "description": "A lost or found small personal item logged on campus",
+      "type": "object",
+      "properties": {
+        "referenceNo": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "type": { "type": "string", "enum": ["lost", "found"] },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Keys & Keychains",
+            "ID Cards & College ID Cards",
+            "Wallets & Purses",
+            "Gold Chains & Jewellery",
+            "Watches",
+            "Earphones & Headphones",
+            "Mobile Phones",
+            "Tablets & iPads",
+            "Laptops & Chargers",
+            "USB Drives & Hard Disks",
+            "Spectacles & Sunglasses",
+            "Books & Notebooks",
+            "Pens & Pencil Cases",
+            "Water Bottles",
+            "Umbrellas",
+            "Bags & Backpacks",
+            "Calculators",
+            "Other Small Personal Items"
+          ]
+        },
+        "location": { "type": "string" },
+        "specificLocation": { "type": "string" },
+        "dateReported": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "claim_pending", "claimed", "closed"] },
+        "imageUrl": { "type": "string" },
+        "rewardOffered": { "type": "string" },
+        "reporterId": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "reporterEmail": { "type": "string" },
+        "reporterPhone": { "type": "string" },
+        "reporterStudentId": { "type": "string" },
+        "heldAtOffice": { "type": "boolean" },
+        "lockerNumber": { "type": "string" },
+        "secretDetails": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": [
+        "referenceNo",
+        "title",
+        "description",
+        "type",
+        "category",
+        "location",
+        "dateReported",
+        "status",
+        "reporterName",
+        "reporterEmail"
+      ]
+    },
+    "ItemClaim": {
+      "title": "ItemClaim",
+      "description": "An ownership claim filed by a student for a found belonging",
+      "type": "object",
+      "properties": {
+        "claimReferenceNo": { "type": "string" },
+        "itemId": { "type": "string" },
+        "itemTitle": { "type": "string" },
+        "itemType": { "type": "string", "enum": ["lost", "found"] },
+        "claimantId": { "type": "string" },
+        "claimantName": { "type": "string" },
+        "claimantEmail": { "type": "string" },
+        "claimantPhone": { "type": "string" },
+        "claimantStudentId": { "type": "string" },
+        "proofDescription": { "type": "string" },
+        "secretIdentifier": { "type": "string" },
+        "supportingDocumentUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected", "collected"] },
+        "adminNotes": { "type": "string" },
+        "submittedAt": { "type": "string" },
+        "reviewedAt": { "type": "string" },
+        "collectedAt": { "type": "string" }
+      },
+      "required": [
+        "claimReferenceNo",
+        "itemId",
+        "itemTitle",
+        "claimantName",
+        "claimantEmail",
+        "claimantStudentId",
+        "proofDescription",
+        "status"
+      ]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile for university student or campus safety staff",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "studentId": { "type": "string" },
+        "department": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "admin"] },
+        "phone": { "type": "string" }
+      },
+      "required": ["name", "email", "role"]
+    }
+  },
+  "firestore": {
+    "/items/{itemId}": {
+      "schema": { "$ref": "#/entities/LostFoundItem" },
+      "description": "Collection of all campus lost and found item records"
+    },
+    "/claims/{claimId}": {
+      "schema": { "$ref": "#/entities/ItemClaim" },
+      "description": "Collection of submitted ownership claims and verification states"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Collection of university students and campus safety officers"
+    }
+  }
+}
